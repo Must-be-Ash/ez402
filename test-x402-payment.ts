@@ -28,7 +28,7 @@ const CLAUDE_REQUEST = {
   messages: [
     {
       role: 'user',
-      content: 'Hello! Please respond with a brief greeting.'
+      content: 'make me a mobile first, minimal donation app that would let people donate by buying a tree emoji. There should be three type of trees at $1, $2 and $5 and we should see the name of the person who bought the tree by clicking on the trees'
     }
   ]
 };
@@ -52,10 +52,11 @@ async function testX402Payment() {
   // Step 2: Make initial request to get 402 response
   console.log('Step 2: Making initial request (expecting 402)...');
   const initialResponse = await fetch(ENDPOINT, {
-    method: 'GET',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json'
-    }
+    },
+    body: JSON.stringify(CLAUDE_REQUEST)
   });
 
   console.log(`Response status: ${initialResponse.status}`);
@@ -154,11 +155,12 @@ async function testX402Payment() {
   console.log('Step 5: Retrying request with payment...');
 
   const paidResponse = await fetch(ENDPOINT, {
-    method: 'GET',
+    method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-PAYMENT': paymentHeader,
-    }
+    },
+    body: JSON.stringify(CLAUDE_REQUEST)
   });
 
   console.log(`Response status: ${paidResponse.status}`);

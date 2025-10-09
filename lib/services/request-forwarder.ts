@@ -40,8 +40,15 @@ export class RequestForwarder {
     };
 
     // Add request body for POST/PUT/DELETE methods
-    if (config.requestBody && (config.httpMethod === 'POST' || config.httpMethod === 'PUT' || config.httpMethod === 'DELETE')) {
-      fetchOptions.body = JSON.stringify(config.requestBody);
+    if (config.httpMethod === 'POST' || config.httpMethod === 'PUT' || config.httpMethod === 'DELETE') {
+      // Read the actual body from the incoming request
+      const bodyText = await originalRequest.text();
+      if (bodyText) {
+        fetchOptions.body = bodyText;
+      } else if (config.requestBody) {
+        // Fallback to configured request body if no body in request
+        fetchOptions.body = JSON.stringify(config.requestBody);
+      }
     }
 
     // Forward request with configured timeout
