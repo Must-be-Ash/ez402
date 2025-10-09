@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# x402 Endpoint Wrapper Service
 
-## Getting Started
+A Next.js application that wraps existing HTTP API endpoints with the x402 micropayment protocol, enabling instant monetization using USDC on Base network.
 
-First, run the development server:
+## Overview
 
+This service allows API providers to wrap their existing endpoints with x402 protocol without modifying their original APIs. Clients pay per request using USDC on Base network, and payments are verified and settled via Coinbase's CDP Facilitator.
+
+## Features
+
+- ✅ **Zero Code Changes**: Wrap existing APIs without modifications
+- ✅ **Instant Monetization**: Set pricing and start earning immediately
+- ✅ **Secure Payments**: On-chain USDC payments on Base network
+- ✅ **Encrypted Storage**: API keys encrypted with AES-256-GCM
+- ✅ **Automatic Settlement**: Payments settled directly to provider wallets
+- ✅ **x402 Protocol**: Full HTTP 402 Payment Required implementation
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router)
+- **Database**: MongoDB with Mongoose
+- **Payments**: Coinbase CDP Facilitator
+- **Blockchain**: Base Mainnet (USDC)
+- **Authentication**: AES-256-GCM encryption
+- **UI**: shadcn/ui + Tailwind CSS
+- **Validation**: Zod + React Hook Form
+
+## Prerequisites
+
+- Node.js 18+ and pnpm
+- MongoDB Atlas account
+- Coinbase CDP API credentials
+- Base network wallet address
+
+## Installation
+
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Configure environment variables in `.env.local`:
+```bash
+# MongoDB connection string
+MONGODB_URI=mongodb+srv://...
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# CDP credentials (get from https://portal.cdp.coinbase.com)
+CDP_API_KEY_ID=your-key-id
+CDP_API_KEY_SECRET=your-secret
 
-## Learn More
+# Generate encryption key
+ENCRYPTION_KEY=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
 
-To learn more about Next.js, take a look at the following resources:
+# Base URL (update for production)
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+4. Run the development server:
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. Open [http://localhost:3000](http://localhost:3000)
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+├── app/api/              # API routes
+│   ├── register/         # Endpoint registration
+│   ├── test-endpoint/    # Endpoint testing
+│   └── x402/[providerId] # x402 proxy
+├── components/           # React components
+├── lib/
+│   ├── db/              # Database connection and models
+│   ├── services/        # Core services
+│   ├── utils/           # Utility functions
+│   ├── constants.ts     # Configuration
+│   ├── types.ts         # TypeScript types
+│   └── validation.ts    # Zod schemas
+└── middleware.ts        # CORS middleware
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Development
+
+```bash
+pnpm dev    # Start dev server
+pnpm build  # Build for production
+pnpm start  # Start production server
+pnpm lint   # Lint code
+```
+
+## Deployment
+
+Deploy to Vercel and set environment variables in the dashboard.
+
+## License
+
+MIT

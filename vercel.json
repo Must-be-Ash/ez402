@@ -1,0 +1,33 @@
+{
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm run dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "env": {
+    "NEXT_PUBLIC_BASE_URL": "https://x402-wrapper.vercel.app",
+    "NODE_ENV": "production"
+  },
+  "headers": [
+    {
+      "source": "/api/x402/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-PAYMENT"
+        },
+        {
+          "key": "Access-Control-Expose-Headers",
+          "value": "X-PAYMENT-RESPONSE"
+        }
+      ]
+    }
+  ]
+}
