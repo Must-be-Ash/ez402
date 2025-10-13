@@ -4,7 +4,7 @@
   "installCommand": "pnpm install",
   "framework": "nextjs",
   "env": {
-    "NEXT_PUBLIC_BASE_URL": "https://x402-wrapper.vercel.app",
+    "NEXT_PUBLIC_BASE_URL": "https://ez402.vercel.app",
     "NODE_ENV": "production"
   },
   "headers": [

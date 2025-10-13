@@ -1,6 +1,6 @@
-# x402 Endpoint Wrapper Service
+# ez402 - Easy x402 Endpoint Wrapper Service
 
-A Next.js application that wraps existing HTTP API endpoints with the x402 micropayment protocol, enabling instant monetization using USDC on Base network.
+A Next.js application that makes it easy to wrap existing HTTP API endpoints with the x402 micropayment protocol, enabling instant monetization using USDC on Base network.
 
 ## Overview
 
