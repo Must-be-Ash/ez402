@@ -17,7 +17,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen flex-col">
       {/* Header */}
-      <header className="border-b border-border bg-background px-6 py-4">
+      <header className="flex-shrink-0 border-b border-border bg-background px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">ez402 AI Chat</h1>
@@ -43,11 +43,9 @@ export default function ChatPage() {
       </header>
 
       {/* Chat Interface */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 min-h-0">
         <Assistant />
       </main>
-
-
     </div>
   );
 }
