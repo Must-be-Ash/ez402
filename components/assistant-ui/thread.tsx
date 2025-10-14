@@ -92,7 +92,7 @@ const MultiStepProgressTracker: FC = () => {
   useEffect(() => {
     // Subscribe to runtime state changes
     const unsubscribe = runtime.subscribe(() => {
-      const messages = runtime.messages;
+      const messages = (runtime as any).messages; // ThreadRuntime doesn't expose messages in types
       if (!messages || messages.length === 0) {
         setSteps([]);
         setIsActive(false);
@@ -115,15 +115,22 @@ const MultiStepProgressTracker: FC = () => {
         }
 
         // Build steps from tool calls
-        const newSteps = toolCalls.map((toolCall, index) => ({
-          stepNumber: index + 1,
-          toolName: toolCall.toolName,
-          status: toolCall.result
-            ? (toolCall.result.error ? "failed" : "completed")
-            : (toolCall.argsText ? "executing" : "pending"),
-          startTime: Date.now(), // Approximate - we don't have exact timing
-          endTime: toolCall.result ? Date.now() : undefined,
-        }));
+        const newSteps = toolCalls.map((toolCall, index) => {
+          let status: "pending" | "executing" | "completed" | "failed";
+          if (toolCall.result) {
+            status = toolCall.result.error ? "failed" : "completed";
+          } else {
+            status = toolCall.argsText ? "executing" : "pending";
+          }
+
+          return {
+            stepNumber: index + 1,
+            toolName: toolCall.toolName,
+            status,
+            startTime: Date.now(), // Approximate - we don't have exact timing
+            endTime: toolCall.result ? Date.now() : undefined,
+          };
+        });
 
         setSteps(newSteps);
       } else {

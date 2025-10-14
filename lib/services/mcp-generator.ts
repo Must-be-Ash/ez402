@@ -147,10 +147,20 @@ export class MCPGeneratorService {
       try {
         const url = new URL(config.originalEndpoint);
         url.searchParams.forEach((value, key) => {
+          // Skip authentication parameters as they're handled automatically
+          if (key === 'key' || key === 'api_key' || key === 'apikey') {
+            return;
+          }
+          
           properties[key] = {
             type: 'string',
             description: `Query parameter: ${key}`
           };
+          
+          // Make empty parameters required (user must provide them)
+          if (value === '') {
+            required.push(key);
+          }
         });
       } catch (e) {
         // If URL parsing fails, use generic query parameter

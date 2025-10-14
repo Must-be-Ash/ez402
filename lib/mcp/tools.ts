@@ -280,7 +280,7 @@ export async function executeMCPTool(
 }
 
 /**
- * Format tool execution result for display
+ * Format tool execution result for display - intelligently formats based on content
  *
  * @param result - Tool execution result
  * @returns Formatted string
@@ -294,22 +294,77 @@ export function formatToolResult(result: ToolExecutionResult): string {
     return `❌ Error: ${result.error}`;
   }
 
-  let output = '✅ Success\n\n';
+  // Try to intelligently format the data based on content
+  let output = '';
 
   if (result.data) {
-    output += `**Data:**\n\`\`\`json\n${JSON.stringify(result.data, null, 2)}\n\`\`\`\n\n`;
-  }
-
-  if (result.metadata) {
-    output += `**Metadata:**\n`;
-    output += `- Provider: ${result.metadata.providerId}\n`;
-    output += `- Price: $${result.metadata.price.toFixed(4)}\n`;
-    if (result.metadata.transaction) {
-      output += `- Transaction: [${result.metadata.transaction}](https://basescan.org/tx/${result.metadata.transaction})\n`;
+    const formatted = formatDataIntelligently(result.data);
+    if (formatted) {
+      output += formatted + '\n\n';
+    } else {
+      // Fallback to JSON for unknown formats
+      output += `\`\`\`json\n${JSON.stringify(result.data, null, 2)}\n\`\`\`\n\n`;
     }
   }
 
-  return output;
+  // Add payment info at the bottom (less prominent)
+  if (result.metadata?.transaction) {
+    output += `\n💳 *Payment: $${result.metadata.price.toFixed(4)} • [View transaction](https://basescan.org/tx/${result.metadata.transaction})*`;
+  }
+
+  return output.trim();
+}
+
+/**
+ * Intelligently format data based on content type
+ * Returns null if it can't determine a good format
+ */
+function formatDataIntelligently(data: unknown): string | null {
+  if (typeof data !== 'object' || data === null) {
+    return String(data);
+  }
+
+  const obj = data as Record<string, any>;
+
+  // Weather API response (WeatherAPI.com format)
+  if (obj.location && obj.current) {
+    const loc = obj.location;
+    const curr = obj.current;
+    return `**${loc.name}, ${loc.region || loc.country}**\n\n` +
+           `🌡️ Temperature: ${curr.temp_c}°C (${curr.temp_f}°F)\n` +
+           `☁️ Conditions: ${curr.condition?.text || 'N/A'}\n` +
+           `💨 Wind: ${curr.wind_kph} km/h ${curr.wind_dir}\n` +
+           `💧 Humidity: ${curr.humidity}%\n` +
+           `👁️ Visibility: ${curr.vis_km} km`;
+  }
+
+  // Check if it's an image or media response
+  if (obj.image_url || obj.url || obj.media_url) {
+    const url = obj.image_url || obj.url || obj.media_url;
+    return `![Image](${url})`;
+  }
+
+  // Check if it has a clear message/text/content field
+  if (obj.message) return obj.message;
+  if (obj.text) return obj.text;
+  if (obj.content) return obj.content;
+
+  // Check if it's a simple object with few fields - format as key-value
+  const keys = Object.keys(obj);
+  if (keys.length <= 5 && keys.length > 0) {
+    return keys.map(key => `**${key}**: ${formatValue(obj[key])}`).join('\n');
+  }
+
+  return null; // Can't format intelligently
+}
+
+/**
+ * Format individual values for display
+ */
+function formatValue(value: unknown): string {
+  if (value === null || value === undefined) return 'N/A';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 /**

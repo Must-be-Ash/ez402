@@ -7,7 +7,7 @@
 
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { frontendTools } from '@assistant-ui/react-ai-sdk';
-import { convertToModelMessages, streamText } from 'ai';
+import { convertToModelMessages, streamText, stepCountIs } from 'ai';
 import { getMCPTools } from '@/lib/mcp/tools';
 
 export const maxDuration = 60; // Increased for tool execution
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
       console.log('🔍 First tool schema:', JSON.stringify({
         name: firstToolName,
         description: firstTool.description,
-        parameters: firstTool.parameters
+        inputSchema: firstTool.inputSchema
       }, null, 2));
     }
 
@@ -58,12 +58,28 @@ When using tools:
 
 Available tools: ${Object.keys(mcpTools).join(', ')}
 
+CRITICAL - After calling any tool, you MUST:
+1. ALWAYS provide a clear, natural language summary of the tool results in your response
+2. Present the key information to the user in a conversational way
+3. For weather data: describe temperature, conditions, wind, humidity, etc. naturally
+4. For other APIs: extract and explain the relevant information
+5. NEVER just say "tool executed successfully" or similar - always summarize the actual data
+6. The user should see the results immediately in the main chat, not just in tool details
+7. Be concise but informative - users want to see the results without expanding tool details
+8. ALWAYS end your response with a summary of what the tool returned - this is mandatory
+
+Example for weather:
+- Good: "The current weather in Vancouver is 10.2°C (50.4°F) with clear skies. Wind is 8.6 km/h from the NNW, humidity is 76%, and visibility is 48 km."
+- Bad: "I've retrieved the weather data for Vancouver." (without showing the actual weather)
+
+Remember: Users should never need to expand tool details to see the results. Always provide the key information in your main response.
+
 Be helpful and explain what you're doing when calling tools.`,
       tools: {
         ...frontendTools(tools),
         ...mcpTools, // Add MCP tools (x402 endpoints)
       },
-      maxSteps: 5, // Allow multi-step tool usage
+      stopWhen: stepCountIs(5), // Allow multi-step tool usage
       onChunk: ({ chunk }) => {
         // Log tool calls for debugging
         if (chunk.type === 'tool-call') {
@@ -71,6 +87,15 @@ Be helpful and explain what you're doing when calling tools.`,
         }
         if (chunk.type === 'tool-result') {
           console.log(`✅ Tool result received for: ${chunk.toolName}`);
+        }
+      },
+      onStepFinish: async ({ toolResults }) => {
+        // Ensure AI provides summary of tool results
+        if (toolResults && toolResults.length > 0) {
+          console.log(`📊 Tool results summary: ${toolResults.length} tools executed`);
+          toolResults.forEach((result, index) => {
+            console.log(`  ${index + 1}. ${result.toolName}: Success`);
+          });
         }
       },
     });

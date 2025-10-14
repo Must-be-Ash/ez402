@@ -3,6 +3,7 @@ import { CheckIcon, ChevronDownIcon, ChevronUpIcon, DollarSignIcon, LoaderIcon, 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MCPUIRenderer } from "@/components/assistant-ui/mcp-ui-renderer";
+import ReactMarkdown from 'react-markdown';
 
 export const ToolFallback: ToolCallMessagePartComponent = ({
   toolName,
@@ -17,6 +18,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   const metadata = result && typeof result === 'object' && 'metadata' in result ? result.metadata as any : null;
   const hasError = result && typeof result === 'object' && 'error' in result;
   const isSuccess = result && typeof result === 'object' && 'success' in result && result.success;
+  const resultText = result && typeof result === 'object' && 'text' in result ? (result as any).text : null;
 
   // Determine status icon and color
   const getStatusIcon = () => {
@@ -61,6 +63,13 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
       </div>
       {!isCollapsed && (
         <div className="aui-tool-fallback-content flex flex-col gap-2 border-t pt-2">
+          {/* Show formatted result text prominently */}
+          {resultText && !hasError && (
+            <div className="aui-tool-fallback-text px-4 py-3 leading-7">
+              <ReactMarkdown>{resultText}</ReactMarkdown>
+            </div>
+          )}
+
           {/* Show MCP-UI resource if available */}
           {hasUIResource && (result as any).uiResource && (
             <div className="aui-tool-fallback-ui-resource px-4">
