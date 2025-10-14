@@ -48,15 +48,11 @@ export const registrationFormSchema = z.object({
 
   authMethod: z.enum(['header', 'query', 'none']),
 
-  authHeaderName: z
-    .string()
-    .min(1, 'Header name is required when using header authentication')
-    .optional(),
+  authHeaderName: z.string().optional(),
 
-  apiKey: z
-    .string()
-    .min(1, 'API key is required for authenticated endpoints')
-    .optional(),
+  queryParamName: z.string().optional(),
+
+  apiKey: z.string().optional(),
 
   curlExample: z
     .string()
@@ -101,6 +97,33 @@ export const registrationFormSchema = z.object({
     .int()
     .min(10, 'Timeout must be at least 10 seconds')
     .max(300, 'Timeout must be less than 5 minutes')
+}).refine((data) => {
+  // Validate authHeaderName is provided when using header auth
+  if (data.authMethod === 'header') {
+    return data.authHeaderName && data.authHeaderName.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'Header name is required when using header authentication',
+  path: ['authHeaderName']
+}).refine((data) => {
+  // Validate queryParamName is provided when using query auth
+  if (data.authMethod === 'query') {
+    return data.queryParamName && data.queryParamName.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'Query parameter name is required when using query authentication',
+  path: ['queryParamName']
+}).refine((data) => {
+  // Validate apiKey is provided when using header or query auth
+  if (data.authMethod !== 'none') {
+    return data.apiKey && data.apiKey.trim().length > 0;
+  }
+  return true;
+}, {
+  message: 'API key is required for authenticated endpoints',
+  path: ['apiKey']
 });
 
 export type RegistrationFormInput = z.infer<typeof registrationFormSchema>;

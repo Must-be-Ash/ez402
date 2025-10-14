@@ -10,6 +10,7 @@ export interface EndpointTestConfig {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE';
   authMethod: 'header' | 'query' | 'none';
   authHeaderName?: string;
+  queryParamName?: string;
   apiKey?: string;
   body?: string;
   customHeaders?: Record<string, string>;
@@ -159,9 +160,10 @@ export class EndpointTester {
     if (config.authMethod === 'header' && config.authHeaderName && config.apiKey) {
       headers[config.authHeaderName] = config.apiKey;
     } else if (config.authMethod === 'query' && config.apiKey) {
-      // Add API key as query parameter
+      // Add API key as query parameter using the specified parameter name
+      const paramName = config.queryParamName || 'key'; // Default to 'key' if not specified
       const separator = url.includes('?') ? '&' : '?';
-      url = `${url}${separator}api_key=${encodeURIComponent(config.apiKey)}`;
+      url = `${url}${separator}${paramName}=${encodeURIComponent(config.apiKey)}`;
     }
 
     return { url, headers };

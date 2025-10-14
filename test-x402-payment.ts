@@ -1,5 +1,5 @@
 /**
- * Test Script for x402 Payment to Anthropic Endpoint
+ * Test Script for x402 Payment to WeatherAPI Endpoint
  *
  * This script tests the x402 payment flow by:
  * 1. Making an initial request to get 402 response
@@ -17,21 +17,9 @@ import * as dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '.env.local' });
 
-const ENDPOINT = 'http://localhost:3000/api/x402/anthropic_claude_api_generates_ai_responses_using';
+const ENDPOINT = 'http://localhost:3000/api/x402/get_current_weather_data_for_any_location_using_we';
 const PRIVATE_KEY = process.env.PRIVATE_KEY as `0x${string}`;
 const USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-
-// Claude API request body
-const CLAUDE_REQUEST = {
-  model: 'claude-sonnet-4-20250514',
-  max_tokens: 4000,
-  messages: [
-    {
-      role: 'user',
-      content: 'make me a mobile first, minimal donation app that would let people donate by buying a tree emoji. There should be three type of trees at $1, $2 and $5 and we should see the name of the person who bought the tree by clicking on the trees'
-    }
-  ]
-};
 
 async function testX402Payment() {
   console.log('🚀 Starting x402 Payment Test');
@@ -50,13 +38,9 @@ async function testX402Payment() {
   console.log(`✅ Network: Base (chainId ${base.id})\n`);
 
   // Step 2: Make initial request to get 402 response
-  console.log('Step 2: Making initial request (expecting 402)...');
+  console.log('Step 2: Making initial GET request (expecting 402)...');
   const initialResponse = await fetch(ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(CLAUDE_REQUEST)
+    method: 'GET'
   });
 
   console.log(`Response status: ${initialResponse.status}`);
@@ -152,15 +136,13 @@ async function testX402Payment() {
   console.log(`✅ Payment header created (${paymentHeader.length} bytes)\n`);
 
   // Step 5: Retry request with payment
-  console.log('Step 5: Retrying request with payment...');
+  console.log('Step 5: Retrying GET request with payment...');
 
   const paidResponse = await fetch(ENDPOINT, {
-    method: 'POST',
+    method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
       'X-PAYMENT': paymentHeader,
-    },
-    body: JSON.stringify(CLAUDE_REQUEST)
+    }
   });
 
   console.log(`Response status: ${paidResponse.status}`);
@@ -189,7 +171,7 @@ async function testX402Payment() {
 
   // Get the response data
   const responseData = await paidResponse.json();
-  console.log('📝 Claude API Response:');
+  console.log('🌤️  WeatherAPI Response:');
   console.log(JSON.stringify(responseData, null, 2));
 
   console.log('\n=================================');

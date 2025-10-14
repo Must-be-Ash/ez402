@@ -43,6 +43,7 @@ export function RegistrationForm() {
       walletAddress: '',
       authMethod: 'header',
       authHeaderName: '',
+      queryParamName: 'key',
       apiKey: '',
       curlExample: '',
       expectedResponse: '',
@@ -69,6 +70,7 @@ export function RegistrationForm() {
           method: form.getValues('httpMethod'),
           authMethod: form.getValues('authMethod'),
           authHeaderName: form.getValues('authHeaderName'),
+          queryParamName: form.getValues('queryParamName'),
           apiKey: form.getValues('apiKey'),
           requestBody: form.getValues('requestBody'),
           curlExample: form.getValues('curlExample'),
@@ -80,6 +82,11 @@ export function RegistrationForm() {
 
       if (data.success) {
         setTestStatus('success');
+        console.log('✅ Test successful! Form validation state:', {
+          isValid: form.formState.isValid,
+          errors: form.formState.errors,
+          isDirty: form.formState.isDirty
+        });
       } else {
         setTestStatus('error');
         setTestError(data.error || 'Test failed');
@@ -91,6 +98,8 @@ export function RegistrationForm() {
   };
 
   const onSubmit = async (data: RegistrationFormInput) => {
+    console.log('📝 Form submitted with data:', data);
+    console.log('📋 Form errors:', form.formState.errors);
     setIsSubmitting(true);
 
     try {
@@ -294,6 +303,25 @@ export function RegistrationForm() {
               />
             )}
 
+            {authMethod === 'query' && (
+              <FormField
+                control={form.control}
+                name="queryParamName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Query Parameter Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="key" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      The query parameter name for the API key (e.g., key, apikey, appid, token)
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             {authMethod !== 'none' && (
               <FormField
                 control={form.control}
@@ -468,6 +496,38 @@ export function RegistrationForm() {
         >
           {isSubmitting ? 'Registering...' : 'Register Endpoint'}
         </Button>
+
+        {/* Button status message */}
+        {testStatus !== 'success' && (
+          <p className="text-sm text-center text-muted-foreground">
+            ⚠️ Please test your endpoint successfully before registering
+          </p>
+        )}
+
+        {/* Debug Panel - Development Only */}
+        {process.env.NODE_ENV === 'development' && (
+          <Card className="bg-slate-50 dark:bg-slate-900">
+            <CardHeader>
+              <CardTitle className="text-sm">Debug Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <div className="text-xs font-mono">
+                <p><strong>Test Status:</strong> {testStatus}</p>
+                <p><strong>Form Valid:</strong> {form.formState.isValid ? '✅' : '❌'}</p>
+                <p><strong>Is Submitting:</strong> {isSubmitting ? 'Yes' : 'No'}</p>
+                <p><strong>Button Disabled:</strong> {(testStatus !== 'success' || isSubmitting) ? 'Yes' : 'No'}</p>
+                {Object.keys(form.formState.errors).length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-red-600"><strong>Form Errors:</strong></p>
+                    <pre className="text-xs bg-red-50 p-2 rounded mt-1 overflow-auto max-h-40">
+                      {JSON.stringify(form.formState.errors, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </form>
     </Form>
   );

@@ -83,7 +83,8 @@ export class RequestForwarder {
 
     // Add API key as query parameter if using query authentication
     if (config.authMethod === 'query' && apiKey) {
-      url.searchParams.set('api_key', apiKey);
+      const paramName = config.queryParamName || 'key'; // Default to 'key' if not specified
+      url.searchParams.set(paramName, apiKey);
     }
 
     return url.toString();

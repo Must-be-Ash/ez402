@@ -12,7 +12,7 @@ import { parseCurl } from '@/lib/utils/curl-parser';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { endpoint, method, authMethod, authHeaderName, apiKey, requestBody, expectedResponse, curlExample } = body;
+    const { endpoint, method, authMethod, authHeaderName, queryParamName, apiKey, requestBody, expectedResponse, curlExample } = body;
 
     // Parse cURL command to extract custom headers
     let customHeaders: Record<string, string> | undefined;
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       method: method || 'GET',
       authMethod,
       authHeaderName,
+      queryParamName,
       apiKey,
       body: requestBody,
       customHeaders,

@@ -1,0 +1,89 @@
+# Cloudflare Workers Configuration
+# https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "ez402-mcp-server"
+main = "workers/mcp-server.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account ID (set via environment variable or CLI)
+# account_id = ""
+
+# Worker settings
+workers_dev = true
+
+# Resource limits
+[limits]
+cpu_ms = 50000  # 50 seconds CPU time
+
+# Environment variables
+# Set these via wrangler secret or dashboard
+[vars]
+NEXT_PUBLIC_BASE_URL = "https://ez402.vercel.app"
+
+# Secrets (set via: wrangler secret put SECRET_NAME)
+# - MONGODB_URI
+# - CDP_API_KEY
+# - CDP_API_SECRET
+# - ENCRYPTION_KEY
+# - MCP_WALLET_PRIVATE_KEY
+
+# Build configuration
+[build]
+command = "npm run build:worker"
+
+[build.upload]
+format = "modules"
+main = "./workers/mcp-server.ts"
+
+# Routes (optional - for custom domain)
+# [[routes]]
+# pattern = "mcp.ez402.com/*"
+# zone_name = "ez402.com"
+
+# Durable Objects (if needed for state management)
+# [[durable_objects.bindings]]
+# name = "MCP_STATE"
+# class_name = "MCPState"
+# script_name = "ez402-mcp-server"
+
+# KV Namespaces (if needed for caching)
+# [[kv_namespaces]]
+# binding = "MCP_CACHE"
+# id = ""
+# preview_id = ""
+
+# Analytics Engine (optional)
+# [analytics_engine_datasets]
+# [[analytics_engine_datasets.bindings]]
+# name = "MCP_ANALYTICS"
+
+# Tail Consumers (for logging)
+# [[tail_consumers]]
+# service = "ez402-mcp-logs"
+
+# Observability
+[observability]
+enabled = true
+
+# Development settings
+[dev]
+port = 8787
+local_protocol = "http"
+
+# Deployment environments
+[env.production]
+name = "ez402-mcp-server"
+workers_dev = false
+routes = []
+vars = { NEXT_PUBLIC_BASE_URL = "https://ez402.com" }
+
+[env.staging]
+name = "ez402-mcp-server-staging"
+workers_dev = true
+vars = { NEXT_PUBLIC_BASE_URL = "https://staging.ez402.com" }
+
+[env.development]
+name = "ez402-mcp-server-dev"
+workers_dev = true
+vars = { NEXT_PUBLIC_BASE_URL = "http://localhost:3000" }

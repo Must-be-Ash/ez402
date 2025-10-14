@@ -23,6 +23,7 @@ export interface IEndpointConfig {
   // Authentication
   authMethod: 'header' | 'query' | 'none';
   authHeaderName?: string;
+  queryParamName?: string;
   apiKey?: string;
 
   // Request/Response Specs
@@ -128,6 +129,15 @@ const EndpointSchema = new Schema<IEndpointDocument>(
         return this.authMethod === 'header';
       },
       trim: true
+    },
+
+    queryParamName: {
+      type: String,
+      required: function(this: IEndpointDocument) {
+        return this.authMethod === 'query';
+      },
+      trim: true,
+      default: 'key' // Common default for API key query parameters
     },
 
     apiKey: {

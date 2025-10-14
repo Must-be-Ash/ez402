@@ -14,6 +14,8 @@ import { EncryptionService } from '@/lib/services/encryption';
 import { EndpointTester } from '@/lib/services/endpoint-tester';
 import { generateProviderId } from '@/lib/utils/generate-provider-id';
 import { parseCurl } from '@/lib/utils/curl-parser';
+import { MCPGeneratorService } from '@/lib/services/mcp-generator';
+import MCPConfigModel from '@/lib/db/models/mcp-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
       method: validated.httpMethod,
       authMethod: validated.authMethod,
       authHeaderName: validated.authHeaderName,
+      queryParamName: validated.queryParamName,
       apiKey: validated.apiKey,
       body: validated.requestBody,
       customHeaders: parsedCurl.headers,
@@ -78,6 +81,7 @@ export async function POST(request: NextRequest) {
       walletAddress: validated.walletAddress,
       authMethod: validated.authMethod,
       authHeaderName: validated.authHeaderName,
+      queryParamName: validated.queryParamName,
       apiKey: encryptedApiKey,
       curlExample: validated.curlExample,
       expectedResponse: JSON.parse(validated.expectedResponse),
@@ -89,13 +93,61 @@ export async function POST(request: NextRequest) {
       isActive: true
     });
 
-    // 8. Return wrapped endpoint URL
+    // 8. Post-Registration Hook: Update MCP Configuration
+    try {
+      // Generate updated MCP tool definitions
+      const generator = new MCPGeneratorService();
+      const tools = await generator.generateToolDefinitions();
+      const toolIds = tools.map(t => t.name);
+
+      // Update or create default MCP config
+      const defaultServerId = 'ez402-mcp-main';
+      await MCPConfigModel.updateOne(
+        { serverId: defaultServerId },
+        {
+          serverId: defaultServerId,
+          serverName: 'EZ402 MCP Server',
+          transportType: 'http',
+          registeredTools: toolIds,
+          updatedAt: new Date()
+        },
+        { upsert: true }
+      );
+
+      console.log(`✅ MCP config updated with new tool: ${providerId}`);
+      console.log(`📋 Total registered tools: ${toolIds.length}`);
+
+      // Optional: Trigger hot reload via webhook
+      // This notifies running MCP servers to reload their tool definitions
+      if (process.env.MCP_RELOAD_WEBHOOK_URL) {
+        try {
+          await fetch(process.env.MCP_RELOAD_WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'reload',
+              serverId: defaultServerId,
+              newTool: providerId
+            })
+          });
+          console.log('🔄 Hot reload triggered');
+        } catch (webhookError) {
+          console.warn('⚠️ Hot reload webhook failed (non-critical):', webhookError);
+        }
+      }
+    } catch (mcpError) {
+      // Log error but don't fail the registration
+      console.error('⚠️ MCP config update failed (non-critical):', mcpError);
+    }
+
+    // 9. Return wrapped endpoint URL
     const wrappedEndpoint = `${process.env.NEXT_PUBLIC_BASE_URL}/api/x402/${providerId}`;
 
     return NextResponse.json({
       success: true,
       wrappedEndpoint,
-      providerId
+      providerId,
+      mcpToolGenerated: true
     }, { status: 200 });
 
   } catch (error) {
