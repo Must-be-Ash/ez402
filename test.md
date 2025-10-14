@@ -50,7 +50,7 @@ x-api-key
 
 ### API Key
 ```
-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
+sk-ant-api03-...REDACTED...
 ```
 
 ---
@@ -102,7 +102,7 @@ For easy copy-pasting into the form:
 | Receiving Wallet Address | `0xAbF01df9428EaD5418473A7c91244826A3Af23b3` |
 | Authentication Method | `header` |
 | Authentication Header Name | `x-api-key` |
-| API Key | `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` |
+| API Key | `sk-ant-api03-...REDACTED...` |
 | Maximum Timeout | `60` |
 
 ---

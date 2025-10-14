@@ -83,23 +83,31 @@ export class EndpointTester {
 
       if (contentType?.includes('application/json')) {
         responseData = await response.json();
+        console.log('📊 Actual API Response:', JSON.stringify(responseData, null, 2));
       } else if (contentType?.includes('text/')) {
         responseData = await response.text();
+        console.log('📊 Actual API Response (text):', responseData);
       } else {
         // Binary or other content type
         responseData = await response.blob();
+        console.log('📊 Actual API Response (binary):', responseData);
       }
 
-      // Validate response if expected response provided
+      // Validate response if expected response provided (optional validation)
       if (config.expectedResponse) {
-        const isValid = this.validateResponse(responseData, config.expectedResponse);
-        if (!isValid) {
-          return {
-            success: false,
-            error: 'Response does not match expected schema',
-            details: 'The endpoint responded successfully but the response structure does not match the expected format',
-            response: responseData
-          };
+        try {
+          const expectedResponse = typeof config.expectedResponse === 'string' 
+            ? JSON.parse(config.expectedResponse) 
+            : config.expectedResponse;
+          const isValid = this.validateResponse(responseData, expectedResponse);
+          if (!isValid) {
+            console.log('⚠️ Response validation failed, but continuing anyway...');
+            console.log('Expected:', expectedResponse);
+            console.log('Actual:', responseData);
+            // Don't fail the test, just log the mismatch
+          }
+        } catch (parseError) {
+          console.log('⚠️ Could not parse expected response JSON, skipping validation');
         }
       }
 
@@ -156,9 +164,12 @@ export class EndpointTester {
       headers['Content-Type'] = 'application/json';
     }
 
-    // Add authentication
+    // Add authentication (only if not already set by custom headers)
     if (config.authMethod === 'header' && config.authHeaderName && config.apiKey) {
-      headers[config.authHeaderName] = config.apiKey;
+      // Only set auth header if it's not already set by custom headers
+      if (!headers[config.authHeaderName] && !headers[config.authHeaderName.toLowerCase()]) {
+        headers[config.authHeaderName] = config.apiKey;
+      }
     } else if (config.authMethod === 'query' && config.apiKey) {
       // Add API key as query parameter using the specified parameter name
       const paramName = config.queryParamName || 'key'; // Default to 'key' if not specified

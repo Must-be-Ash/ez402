@@ -173,16 +173,40 @@ export class MCPGeneratorService {
 
     // For POST/PUT/DELETE requests, use request body schema
     if (['POST', 'PUT', 'DELETE'].includes(config.httpMethod)) {
-      if (config.requestBody && typeof config.requestBody === 'object') {
-        // Extract schema from request body
-        Object.keys(config.requestBody).forEach(key => {
-          const value = (config.requestBody as Record<string, unknown>)[key];
-          properties[key] = {
-            type: typeof value,
-            description: `Request body parameter: ${key}`
+      if (config.requestBody) {
+        try {
+          // Try to parse request body as JSON
+          const bodyObj = typeof config.requestBody === 'string' 
+            ? JSON.parse(config.requestBody) 
+            : config.requestBody;
+          
+          if (typeof bodyObj === 'object' && bodyObj !== null) {
+            // Extract schema from request body
+            Object.keys(bodyObj).forEach(key => {
+              const value = (bodyObj as Record<string, unknown>)[key];
+              properties[key] = {
+                type: typeof value,
+                description: `Request body parameter: ${key}`
+              };
+              // Only make non-empty values required
+              if (value !== '' && value !== null && value !== undefined) {
+                required.push(key);
+              }
+            });
+          } else {
+            // Generic body parameter
+            properties.body = {
+              type: 'object',
+              description: 'Request body (JSON)'
+            };
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use generic body parameter
+          properties.body = {
+            type: 'object',
+            description: 'Request body (JSON)'
           };
-          required.push(key);
-        });
+        }
       } else {
         // Generic body parameter
         properties.body = {
