@@ -5,20 +5,27 @@ import { Button } from "@/components/ui/button";
 import { MCPUIRenderer } from "@/components/assistant-ui/mcp-ui-renderer";
 import ReactMarkdown from 'react-markdown';
 
+interface ToolMetadata {
+  price?: number;
+  transaction?: string;
+  providerId?: string;
+  executionTime?: string;
+}
+
 export const ToolFallback: ToolCallMessagePartComponent = ({
   toolName,
   argsText,
   result,
-  isLoading
+  status
 }) => {
+  const isLoading = status.type === "running";
   const [isCollapsed, setIsCollapsed] = useState(false); // Show by default for UI resources
 
   // Check if result contains MCP-UI resource
   const hasUIResource = result && typeof result === 'object' && 'uiResource' in result;
-  const metadata = result && typeof result === 'object' && 'metadata' in result ? result.metadata as any : null;
+  const metadata = result && typeof result === 'object' && 'metadata' in result ? result.metadata as ToolMetadata : null;
   const hasError = result && typeof result === 'object' && 'error' in result;
-  const isSuccess = result && typeof result === 'object' && 'success' in result && result.success;
-  const resultText = result && typeof result === 'object' && 'text' in result ? (result as any).text : null;
+  const resultText = result && typeof result === 'object' && 'text' in result ? (result as Record<string, unknown>).text as string : null;
 
   // Determine status icon and color
   const getStatusIcon = () => {
@@ -48,7 +55,7 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
           {metadata && metadata.price !== undefined && (
             <span className="ml-2 inline-flex items-center gap-1 text-xs bg-white border border-gray-200 rounded-full px-2 py-0.5">
               <DollarSignIcon className="size-3" />
-              <span className="font-semibold">${metadata.price.toFixed(4)}</span>
+              <span className="font-semibold">${metadata.price?.toFixed(4)}</span>
               {metadata.transaction && (
                 <span className="text-green-600">• Paid</span>
               )}
@@ -71,9 +78,9 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
           )}
 
           {/* Show MCP-UI resource if available */}
-          {hasUIResource && (result as any).uiResource && (
+          {hasUIResource && (result as Record<string, unknown>).uiResource && (
             <div className="aui-tool-fallback-ui-resource px-4">
-              <MCPUIRenderer resource={(result as any).uiResource} />
+              <MCPUIRenderer resource={(result as Record<string, unknown>).uiResource} />
             </div>
           )}
 
@@ -110,19 +117,19 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
                   {metadata.price !== undefined && (
                     <div className="flex items-center gap-1 text-xs">
                       <DollarSignIcon className="size-3 text-gray-500" />
-                      <span className="font-semibold">${metadata.price.toFixed(4)} USDC</span>
+                      <span className="font-semibold">${metadata.price?.toFixed(4)} USDC</span>
                       <span className="text-gray-500">on Base</span>
                     </div>
                   )}
                   {metadata.providerId && (
                     <div className="text-xs text-gray-500">
-                      Provider: <code className="bg-gray-100 px-1 rounded">{metadata.providerId}</code>
+                      Provider: <code className="bg-gray-100 px-1 rounded">{String(metadata.providerId)}</code>
                     </div>
                   )}
                 </div>
                 {metadata.transaction && (
                   <a
-                    href={`https://basescan.org/tx/${metadata.transaction}`}
+                    href={`https://sepolia.basescan.org/tx/${metadata.transaction}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium"

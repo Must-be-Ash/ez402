@@ -16,7 +16,7 @@ import { MCPGeneratorService, MCPToolDefinition } from '../services/mcp-generato
 import axios, { AxiosInstance } from 'axios';
 import { createWalletClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
 
 /**
  * Dynamic MCP Server Class
@@ -177,7 +177,7 @@ export class DynamicMCPServer {
 
     try {
       // Step 1: Make initial request (expecting 402)
-      let response = await this.axiosClient.request({
+      const response = await this.axiosClient.request({
         url: endpointUrl,
         method: tool.metadata.httpMethod,
         ...(tool.metadata.httpMethod !== 'GET' && { data: args })
@@ -244,7 +244,7 @@ export class DynamicMCPServer {
     const account = privateKeyToAccount(privateKey);
     const walletClient = createWalletClient({
       account,
-      chain: base,
+      chain: baseSepolia,
       transport: http()
     });
 
@@ -261,13 +261,13 @@ export class DynamicMCPServer {
     const now = Math.floor(Date.now() / 1000);
     const validAfter = (now - 600).toString(); // 10 minutes before now
     const validBefore = (now + requirements.maxTimeoutSeconds).toString();
-    const nonce = `0x${Buffer.from(Math.random().toString()).toString('hex').slice(0, 64).padEnd(64, '0')}`;
+    const nonce = `0x${require('crypto').randomBytes(32).toString('hex')}`;
 
     // EIP-712 domain for USDC
     const domain = {
       name: requirements.extra?.name || 'USD Coin',
       version: requirements.extra?.version || '2',
-      chainId: base.id,
+      chainId: baseSepolia.id,
       verifyingContract: requirements.asset as `0x${string}`
     };
 
@@ -304,7 +304,7 @@ export class DynamicMCPServer {
     const paymentPayload = {
       x402Version: 1,
       scheme: 'exact',
-      network: 'base',
+      network: 'base-sepolia',
       payload: {
         signature,
         authorization: {

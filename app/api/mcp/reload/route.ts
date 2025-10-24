@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
-import { MCPGeneratorService } from '@/lib/services/mcp-generator';
+import { MCPGeneratorService, MCPToolDefinition } from '@/lib/services/mcp-generator';
 import MCPConfigModel from '@/lib/db/models/mcp-config';
 
 /**
@@ -15,7 +15,7 @@ import MCPConfigModel from '@/lib/db/models/mcp-config';
  * TTL: 5 minutes (300 seconds)
  */
 interface ToolCache {
-  tools: any[];
+  tools: MCPToolDefinition[];
   timestamp: number;
   ttl: number;
 }

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
-import ChatSessionModel, { IMessage } from '@/lib/db/models/chat-session';
+import ChatSessionModel from '@/lib/db/models/chat-session';
 
 /**
  * POST /api/chat/sessions/[sessionId]/messages
@@ -23,12 +23,12 @@ import ChatSessionModel, { IMessage } from '@/lib/db/models/chat-session';
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     await connectToDatabase();
 
-    const { sessionId } = params;
+    const { sessionId } = await params;
     const body = await req.json();
     const { id, role, content, toolCalls } = body;
 

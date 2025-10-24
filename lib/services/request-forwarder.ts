@@ -75,6 +75,15 @@ export class RequestForwarder {
   ): string {
     const url = new URL(config.originalEndpoint);
 
+    // Remove any PLACEHOLDER parameters (used only for schema generation)
+    const placeholdersToRemove: string[] = [];
+    url.searchParams.forEach((value, key) => {
+      if (value === 'PLACEHOLDER') {
+        placeholdersToRemove.push(key);
+      }
+    });
+    placeholdersToRemove.forEach(key => url.searchParams.delete(key));
+
     // Extract and preserve query parameters from original request
     const originalUrl = new URL(originalRequest.url);
     originalUrl.searchParams.forEach((value, key) => {

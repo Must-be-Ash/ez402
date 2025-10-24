@@ -13,7 +13,7 @@ import { IEndpointConfig } from './db/models/endpoint';
 
 export interface PaymentRequirements {
   scheme: 'exact';
-  network: 'base';
+  network: 'base' | 'base-sepolia';
   maxAmountRequired: string;
   resource: string;
   description: string;
@@ -28,7 +28,7 @@ export interface PaymentRequirements {
 export interface PaymentPayload {
   x402Version: 1;
   scheme: 'exact';
-  network: 'base';
+  network: 'base' | 'base-sepolia';
   payload: {
     signature: string;
     authorization: {
@@ -58,7 +58,7 @@ export interface VerifyResponse {
 export interface SettleResponse {
   success: boolean;
   transaction: string;
-  network: 'base';
+  network: 'base' | 'base-sepolia';
   payer: string;
   errorReason?: string;
 }
@@ -66,7 +66,7 @@ export interface SettleResponse {
 export interface PaymentResponseHeader {
   success: boolean;
   transaction: string;
-  network: 'base';
+  network: 'base' | 'base-sepolia';
   payer: string;
 }
 

@@ -15,12 +15,12 @@ import ChatSessionModel from '@/lib/db/models/chat-session';
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     await connectToDatabase();
 
-    const { sessionId } = params;
+    const { sessionId } = await params;
 
     const session = await ChatSessionModel.findBySessionId(sessionId);
 
@@ -66,12 +66,12 @@ export async function GET(
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
     await connectToDatabase();
 
-    const { sessionId } = params;
+    const { sessionId } = await params;
     const body = await req.json();
     const { title } = body;
 

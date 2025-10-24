@@ -134,7 +134,7 @@ export type RegistrationFormInput = z.infer<typeof registrationFormSchema>;
 export const paymentPayloadSchema = z.object({
   x402Version: z.literal(1),
   scheme: z.literal('exact'),
-  network: z.literal('base'),
+  network: z.enum(['base', 'base-sepolia']), // Support both mainnet and testnet
   payload: z.object({
     signature: z.string().regex(/^0x[a-fA-F0-9]+$/, 'Invalid signature format'),
     authorization: z.object({

@@ -265,7 +265,7 @@ export function formatToolResultWithUI(result: {
   if (result.metadata?.transaction) {
     actions.push({
       label: 'View Transaction',
-      url: `https://basescan.org/tx/${result.metadata.transaction}`
+      url: `https://sepolia.basescan.org/tx/${result.metadata.transaction}`
     });
   }
 

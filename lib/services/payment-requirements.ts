@@ -7,7 +7,7 @@
 
 import { IEndpointConfig } from '../db/models/endpoint';
 import { PaymentRequirements } from '../types';
-import { USDC_BASE_MAINNET, USDC_DECIMALS } from '../constants';
+import { NETWORK_CONFIG_SEPOLIA, USDC_DECIMALS } from '../constants';
 
 export class PaymentRequirementsBuilder {
   /**
@@ -25,7 +25,7 @@ export class PaymentRequirementsBuilder {
   build(config: IEndpointConfig, requestUrl: string): PaymentRequirements {
     return {
       scheme: 'exact',
-      network: 'base',
+      network: NETWORK_CONFIG_SEPOLIA.network, // Base Sepolia testnet
       maxAmountRequired: this.calculateMaxAmountRequired(config.price),
       resource: requestUrl,
       description: config.description,
@@ -33,9 +33,9 @@ export class PaymentRequirementsBuilder {
       outputSchema: config.outputSchema,
       payTo: config.walletAddress,
       maxTimeoutSeconds: config.maxTimeoutSeconds,
-      asset: USDC_BASE_MAINNET,
+      asset: NETWORK_CONFIG_SEPOLIA.usdcContract, // Base Sepolia USDC
       extra: {
-        name: 'USD Coin',
+        name: 'USDC',
         version: '2'
       }
     };

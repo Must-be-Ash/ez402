@@ -7,6 +7,7 @@
 
 import { Assistant } from '@/app/assistant';
 import { Metadata } from 'next';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'AI Chat - ez402',
@@ -26,12 +27,12 @@ export default function ChatPage() {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <a
+            <Link
               href="/"
               className="text-sm text-muted-foreground hover:text-foreground"
             >
               Home
-            </a>
+            </Link>
             <a
               href="/register"
               className="text-sm text-muted-foreground hover:text-foreground"

@@ -19,6 +19,8 @@ export interface IMCPConfig {
   registeredTools: string[];     // Array of providerIds
   lastDeployedAt?: Date;
   errorMessage?: string;         // Deployment error details
+  createdAt?: Date;              // Mongoose timestamp
+  updatedAt?: Date;              // Mongoose timestamp
 }
 
 /**
@@ -180,7 +182,7 @@ MCPConfigSchema.methods = {
    * Remove a tool from registered tools
    */
   removeTool(providerId: string): void {
-    this.registeredTools = this.registeredTools.filter(id => id !== providerId);
+    this.registeredTools = this.registeredTools.filter((id: string) => id !== providerId);
   }
 };
 

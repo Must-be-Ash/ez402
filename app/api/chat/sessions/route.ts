@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
-import ChatSessionModel from '@/lib/db/models/chat-session';
+import ChatSessionModel, { IChatSessionDocument } from '@/lib/db/models/chat-session';
 
 /**
  * GET /api/chat/sessions
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       count: sessions.length,
-      sessions: sessions.map(s => ({
+      sessions: sessions.map((s: IChatSessionDocument) => ({
         sessionId: s.sessionId,
         title: s.title,
         metadata: s.metadata,

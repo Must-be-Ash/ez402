@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 3002",
+    "dev": "next dev --turbopack -p 3000",
     "build": "next build --turbopack",
-    "start": "next start -p 3002",
+    "start": "next start -p 3000",
     "lint": "eslint",
     "test:mcp": "tsx test-mcp-server.ts",
     "mcp:server": "tsx scripts/start-mcp-server.ts",
@@ -21,7 +21,9 @@
     "@assistant-ui/react": "^0.11.29",
     "@assistant-ui/react-ai-sdk": "^1.1.6",
     "@assistant-ui/react-markdown": "^0.11.1",
+    "@browserbasehq/stagehand": "^2.5.2",
     "@coinbase/cdp-sdk": "^1.38.3",
+    "@coinbase/x402": "^0.6.6",
     "@hookform/resolvers": "^5.2.2",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -49,8 +51,10 @@
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.3.1",
     "viem": "^2.38.0",
+    "x402": "^0.6.6",
     "x402-axios": "^0.6.6",
-    "zod": "^4.1.12",
+    "x402-fetch": "^0.6.6",
+    "zod": "3.25.67",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

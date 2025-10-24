@@ -92,14 +92,14 @@ const MultiStepProgressTracker: FC = () => {
   useEffect(() => {
     // Subscribe to runtime state changes
     const unsubscribe = runtime.subscribe(() => {
-      const messages = (runtime as any).messages; // ThreadRuntime doesn't expose messages in types
+      const messages = (runtime as unknown as { messages?: unknown[] }).messages; // ThreadRuntime doesn't expose messages in types
       if (!messages || messages.length === 0) {
         setSteps([]);
         setIsActive(false);
         return;
       }
 
-      const lastMessage = messages[messages.length - 1];
+      const lastMessage = messages[messages.length - 1] as { role?: string; status?: { type?: string }; content?: Array<{ type?: string; toolName?: string; argsText?: string; status?: { type?: string }; result?: { error?: unknown } | null }> };
 
       // Check if assistant is currently running
       const isRunning = lastMessage.role === "assistant" && lastMessage.status?.type === "running";
@@ -107,7 +107,7 @@ const MultiStepProgressTracker: FC = () => {
 
       // Track tool calls from the last assistant message
       if (lastMessage.role === "assistant" && lastMessage.content) {
-        const toolCalls: any[] = [];
+        const toolCalls: Array<{ type?: string; toolName?: string; argsText?: string; status?: { type?: string }; result?: { error?: unknown } | null }> = [];
         for (const part of lastMessage.content) {
           if (part.type === "tool-call") {
             toolCalls.push(part);
@@ -125,7 +125,7 @@ const MultiStepProgressTracker: FC = () => {
 
           return {
             stepNumber: index + 1,
-            toolName: toolCall.toolName,
+            toolName: toolCall.toolName || "unknown",
             status,
             startTime: Date.now(), // Approximate - we don't have exact timing
             endTime: toolCall.result ? Date.now() : undefined,

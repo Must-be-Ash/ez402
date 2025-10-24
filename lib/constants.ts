@@ -1,8 +1,6 @@
 /**
  * Network Configuration for x402 Protocol
  *
- * Hardcoded for V1 (Base Mainnet Only)
- *
  * Based on PRD Section 10.2
  */
 
@@ -17,9 +15,27 @@ export const NETWORK_CONFIG = {
 } as const;
 
 /**
+ * Base Sepolia Testnet Configuration for x402 Protocol
+ */
+export const NETWORK_CONFIG_SEPOLIA = {
+  network: 'base-sepolia',
+  chainId: 84532,
+  usdcContract: '0x036CbD53842c5426634e7929541eC2318f3dCF7e',
+  usdcDecimals: 6,
+  facilitatorUrl: 'https://api.cdp.coinbase.com/platform/v2/x402',
+  rpcUrl: 'https://sepolia.base.org',
+  explorerUrl: 'https://sepolia.basescan.org'
+} as const;
+
+/**
  * USDC token configuration for Base mainnet
  */
 export const USDC_BASE_MAINNET = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+/**
+ * USDC token configuration for Base Sepolia testnet
+ */
+export const USDC_BASE_SEPOLIA = '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
 /**
  * USDC has 6 decimal places

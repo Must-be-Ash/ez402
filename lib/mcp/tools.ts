@@ -18,11 +18,12 @@ import {
 import { withPaymentInterceptor, decodeXPaymentResponse } from 'x402-axios';
 import axios from 'axios';
 import { privateKeyToAccount } from 'viem/accounts';
-import { base } from 'viem/chains';
+import { baseSepolia } from 'viem/chains';
+import { createWalletClient, http, publicActions } from 'viem';
 
 /**
  * Create payment-enabled axios client using MCP wallet
- * Automatically handles x402 payment challenges
+ * Automatically handles x402 payment challenges on Base Sepolia testnet
  */
 let paymentClient: ReturnType<typeof withPaymentInterceptor> | null = null;
 
@@ -33,15 +34,25 @@ function getPaymentClient() {
       throw new Error('MCP_WALLET_PRIVATE_KEY not configured');
     }
 
+    // Create account
     const account = privateKeyToAccount(privateKey);
+
+    // Create WalletClient with publicActions (required for x402-axios)
+    const walletClient = createWalletClient({
+      account,
+      chain: baseSepolia, // Use Base Sepolia testnet
+      transport: http(),
+    }).extend(publicActions);
+
+    // Create payment-enabled axios client
     paymentClient = withPaymentInterceptor(
       axios.create({
-        timeout: 30000, // 30 second timeout
+        timeout: 120000, // 120 second timeout (matches max endpoint timeout)
       }),
-      account
+      walletClient as any // Type assertion - x402-axios accepts WalletClient with publicActions
     );
 
-    console.log(`💳 Payment client initialized with wallet: ${account.address}`);
+    console.log(`💳 Payment client initialized for Base Sepolia with wallet: ${account.address}`);
   }
 
   return paymentClient;
@@ -223,48 +234,30 @@ export async function executeMCPTool(
       };
     }
 
-    // For now, make direct request to the provider endpoint (bypassing x402 payment)
-    // TODO: Fix x402 payment flow
-    const directClient = axios.create({
-      timeout: 30000,
-    });
+    // Get payment-enabled client for x402 payment flow on Base Sepolia
+    const client = getPaymentClient();
 
-    // Build the target URL and headers
-    const targetUrl = endpoint.originalEndpoint;
+    // Build the x402 wrapper URL (not direct endpoint)
+    // Format: http://localhost:3000/api/x402/{providerId}
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const targetUrl = `${baseUrl}/api/x402/${toolName}`;
+
+    // Headers for x402 request
     const headers: Record<string, string> = {
-      'User-Agent': 'x402-wrapper/1.0',
       'Content-Type': 'application/json'
     };
 
-        // Add authentication header (decrypt API key if needed)
-        if (endpoint.authMethod === 'header' && endpoint.authHeaderName && endpoint.apiKey) {
-          let apiKey = endpoint.apiKey;
-          
-          // Check if API key is encrypted (contains colons, which is our encryption format)
-          if (apiKey.includes(':')) {
-            try {
-              const { EncryptionService } = await import('../services/encryption');
-              const encryption = new EncryptionService();
-              apiKey = encryption.decrypt(apiKey);
-            } catch (error) {
-              console.warn('Failed to decrypt API key, using as-is:', error);
-            }
-          }
-          
-          // Use Bearer token format for Authorization header
-          if (endpoint.authHeaderName.toLowerCase() === 'authorization') {
-            headers[endpoint.authHeaderName] = `Bearer ${apiKey}`;
-          } else {
-            headers[endpoint.authHeaderName] = apiKey;
-          }
-          console.log(`🔑 Using API key for ${endpoint.authHeaderName}: ${apiKey.substring(0, 10)}...`);
-        }
+    console.log(`💳 Making x402 payment request to: ${targetUrl}`);
+    console.log(`💰 Expected price: $${endpoint.price}`);
 
-    console.log(`🌐 Making direct request to: ${targetUrl}`);
-    console.log(`📋 Headers:`, Object.keys(headers));
-
-    // Make direct request to provider
-    const response = await directClient.request({
+    // Make request through x402 payment flow
+    // The payment client will automatically:
+    // 1. Make initial request to x402 endpoint
+    // 2. Receive 402 Payment Required with PaymentRequirements
+    // 3. Sign USDC payment on Base Sepolia
+    // 4. Retry with X-PAYMENT header
+    // 5. Receive response with X-PAYMENT-RESPONSE (tx hash)
+    const response = await client.request({
       url: targetUrl,
       method: endpoint.httpMethod,
       headers,
@@ -274,7 +267,21 @@ export async function executeMCPTool(
 
     const data = response.data;
 
-    console.log(`✅ Direct API call successful for ${toolName}`);
+    // Extract transaction hash from X-PAYMENT-RESPONSE header
+    const paymentResponse = response.headers['x-payment-response'];
+    let transactionHash = 'unknown';
+
+    if (paymentResponse) {
+      try {
+        const decoded = decodeXPaymentResponse(paymentResponse);
+        transactionHash = decoded.transaction || 'unknown';
+        console.log(`✅ x402 payment successful for ${toolName}`);
+        console.log(`💳 Transaction hash: ${transactionHash}`);
+        console.log(`🔗 View on Base Sepolia: https://sepolia.basescan.org/tx/${transactionHash}`);
+      } catch (error) {
+        console.warn('Failed to decode X-PAYMENT-RESPONSE:', error);
+      }
+    }
 
     return {
       success: true,
@@ -282,7 +289,7 @@ export async function executeMCPTool(
       metadata: {
         providerId: toolName,
         price: endpoint.price,
-        transaction: 'direct-call' // Placeholder since we're bypassing payment
+        transaction: transactionHash
       }
     };
   } catch (error) {

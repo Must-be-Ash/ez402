@@ -14,7 +14,7 @@ interface Tool {
     method: string;
   };
   inputSchema: {
-    properties: Record<string, any>;
+    properties: Record<string, unknown>;
   };
 }
 

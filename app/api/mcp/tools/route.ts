@@ -7,8 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/db/connection';
-import { MCPGeneratorService } from '@/lib/services/mcp-generator';
-import EndpointModel from '@/lib/db/models/endpoint';
+import { MCPGeneratorService, MCPToolDefinition } from '@/lib/services/mcp-generator';
 
 /**
  * GET /api/mcp/tools
@@ -164,8 +163,8 @@ export async function POST(req: NextRequest) {
     // Limit results
     results = results.slice(0, limit);
 
-    // Format response
-    const toolsResponse = results.map(tool => ({
+    // Format response with relevance scoring
+    const toolsWithScores = results.map(tool => ({
       name: tool.name,
       description: tool.description,
       price: tool.metadata.price,
@@ -175,13 +174,16 @@ export async function POST(req: NextRequest) {
     }));
 
     // Sort by relevance score
-    toolsResponse.sort((a, b) => b.score - a.score);
+    toolsWithScores.sort((a, b) => b.score - a.score);
+
+    // Remove score from final response
+    const toolsResponse = toolsWithScores.map(({ score: _score, ...tool }) => tool);
 
     return NextResponse.json({
       success: true,
       query,
       count: results.length,
-      tools: toolsResponse.map(({ score, ...tool }) => tool), // Remove score from response
+      tools: toolsResponse,
       filters
     });
   } catch (error) {
@@ -200,7 +202,7 @@ export async function POST(req: NextRequest) {
 /**
  * Calculate basic relevance score for search results
  */
-function calculateRelevanceScore(tool: any, query?: string): number {
+function calculateRelevanceScore(tool: MCPToolDefinition, query?: string): number {
   if (!query) return 1;
 
   const searchTerm = query.toLowerCase();

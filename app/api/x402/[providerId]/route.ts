@@ -10,7 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connection';
 import EndpointModel from '@/lib/db/models/endpoint';
-import { FacilitatorService } from '@/lib/services/facilitator';
+import { createFacilitatorConfig } from '@coinbase/x402';
+import { getServerWalletClient } from '@/lib/wallet';
 import { EncryptionService } from '@/lib/services/encryption';
 import { PaymentRequirementsBuilder } from '@/lib/services/payment-requirements';
 import { RequestForwarder } from '@/lib/services/request-forwarder';
@@ -62,11 +63,43 @@ async function handleRequest(
     const builder = new PaymentRequirementsBuilder();
     const paymentRequirements = builder.build(config, request.url);
 
-    // 6. Verify payment via CDP Facilitator
-    const facilitator = new FacilitatorService();
-    const verifyResult = await facilitator.verify(paymentPayload, paymentRequirements);
+    // 6. Verify payment via facilitator
+    console.log(`🔍 Verifying payment for ${providerId}...`);
+    
+    // Use CDP facilitator for better reliability
+    const { createFacilitatorConfig } = await import('@coinbase/x402');
+    const facilitatorConfig = createFacilitatorConfig(
+      process.env.CDP_API_KEY_ID!,
+      process.env.CDP_API_KEY_SECRET!
+    );
+    const facilitatorUrl = facilitatorConfig.url;
+    const authHeaders = facilitatorConfig.createAuthHeaders 
+      ? await facilitatorConfig.createAuthHeaders()
+      : { verify: {}, settle: {}, supported: {}, list: {} };
+    
+    const verifyResponse = await fetch(`${facilitatorUrl}/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders.verify
+      },
+      body: JSON.stringify({
+        x402Version: 1,
+        paymentPayload: paymentPayload,
+        paymentRequirements: paymentRequirements
+      })
+    });
+    
+    if (!verifyResponse.ok) {
+      const errorBody = await verifyResponse.text();
+      console.error('❌ Facilitator verify error:', errorBody);
+      throw new Error(`Facilitator verify failed: ${verifyResponse.status} - ${errorBody}`);
+    }
+    
+    const verifyResult = await verifyResponse.json();
 
     if (!verifyResult.isValid) {
+      console.log(`❌ Payment verification failed: ${verifyResult.invalidReason}`);
       return NextResponse.json({
         x402Version: 1,
         error: `Payment verification failed: ${verifyResult.invalidReason}`,
@@ -74,7 +107,10 @@ async function handleRequest(
       }, { status: 402 });
     }
 
-    // 7. Payment is valid - decrypt API key and forward request to provider endpoint
+    console.log(`✅ Payment verified from ${verifyResult.payer}`);
+
+    // 7. Decrypt API key and forward request to provider endpoint (deliver service immediately)
+    console.log(`📦 Payment verified - delivering service...`);
     const encryption = new EncryptionService();
     const decryptedApiKey = config.apiKey ? encryption.decrypt(config.apiKey) : undefined;
 
@@ -91,29 +127,44 @@ async function handleRequest(
 
     const providerData = await providerResponse.json();
 
-    // 8. Settle payment via CDP Facilitator
-    const settleResult = await facilitator.settle(paymentPayload, paymentRequirements);
+    // 8. Settle payment asynchronously in background (don't block response)
+    console.log(`⛓️  Initiating async settlement...`);
+    
+    fetch(`${facilitatorUrl}/settle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeaders.settle
+      },
+      body: JSON.stringify({
+        x402Version: 1,
+        paymentPayload: paymentPayload,
+        paymentRequirements: paymentRequirements
+      })
+    }).then(async (settleResponse) => {
+      if (!settleResponse.ok) {
+        const errorBody = await settleResponse.text();
+        console.error(`❌ [${providerId}] Async settlement failed:`, errorBody);
+        // In production: store failure, retry later, alert monitoring
+        return;
+      }
+      
+      const settleResult = await settleResponse.json();
+      
+      if (settleResult.success) {
+        console.log(`✅ [${providerId}] Payment settled! Tx: ${settleResult.transaction}`);
+        // In production: store transaction hash for accounting
+      } else {
+        console.error(`❌ [${providerId}] Settlement failed: ${settleResult.errorReason || 'unknown'}`);
+      }
+    }).catch((error) => {
+      console.error(`❌ [${providerId}] Settlement error:`, error);
+    });
 
-    if (!settleResult.success) {
-      // Log settlement failure but still return data (payment was verified)
-      console.error('Payment settlement failed:', settleResult.errorReason);
-      // Note: In production, you may want to implement retry logic
-    }
-
-    // 9. Build X-PAYMENT-RESPONSE header
-    const paymentResponse = {
-      success: settleResult.success,
-      transaction: settleResult.transaction,
-      network: settleResult.network,
-      payer: verifyResult.payer
-    };
-    const paymentResponseHeader = Buffer.from(JSON.stringify(paymentResponse)).toString('base64');
-
-    // 10. Return provider data with payment receipt
+    // 9. Return provider data immediately (settlement happens in background)
     return NextResponse.json(providerData, {
       status: 200,
       headers: {
-        'X-PAYMENT-RESPONSE': paymentResponseHeader,
         'Access-Control-Expose-Headers': 'X-PAYMENT-RESPONSE'
       }
     });

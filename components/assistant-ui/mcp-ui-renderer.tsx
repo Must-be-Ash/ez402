@@ -34,18 +34,12 @@ export function MCPUIRenderer({ resource, className = '' }: MCPUIRendererProps) 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Validate resource
-  if (!isMCPUIResource(resource)) {
-    return (
-      <div className="rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-        ⚠️ Invalid MCP-UI resource
-      </div>
-    );
-  }
-
-  const uiResource = resource as MCPUIResource;
+  // Validate resource - must be done after all hooks
+  const isValid = isMCPUIResource(resource);
+  const uiResource = isValid ? (resource as MCPUIResource) : null;
 
   useEffect(() => {
+    if (!uiResource) return;
     if (uiResource.content.type === 'rawHtml' && iframeRef.current) {
       try {
         const iframe = iframeRef.current;
@@ -92,6 +86,15 @@ export function MCPUIRenderer({ resource, className = '' }: MCPUIRendererProps) 
       }
     }
   }, [uiResource]);
+
+  // Return error UI if resource is invalid
+  if (!isValid || !uiResource) {
+    return (
+      <div className="rounded border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+        ⚠️ Invalid MCP-UI resource
+      </div>
+    );
+  }
 
   if (error) {
     return (

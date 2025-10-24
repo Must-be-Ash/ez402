@@ -7,23 +7,28 @@
 import mongoose, { Schema, Model, Document } from 'mongoose';
 
 /**
+ * Tool Call Interface
+ */
+export interface IToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+  result?: unknown;
+  metadata?: {
+    price?: number;
+    transaction?: string;
+    executionTime?: string;
+  };
+}
+
+/**
  * Message Interface
  */
 export interface IMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
-  toolCalls?: Array<{
-    id: string;
-    name: string;
-    arguments: Record<string, unknown>;
-    result?: unknown;
-    metadata?: {
-      price?: number;
-      transaction?: string;
-      executionTime?: string;
-    };
-  }>;
+  toolCalls?: IToolCall[];
   timestamp: Date;
 }
 
@@ -50,6 +55,20 @@ export interface IChatSession {
 export interface IChatSessionDocument extends IChatSession, Document {
   createdAt: Date;
   updatedAt: Date;
+  // Instance methods
+  addMessage(message: Partial<IMessage>): void;
+  updateToolCallResult(messageId: string, toolCallId: string, result: unknown, metadata?: Record<string, unknown>): void;
+  archive(): void;
+  generateTitle(): string;
+}
+
+/**
+ * Chat Session Model Interface (includes static methods)
+ */
+export interface IChatSessionModel extends Model<IChatSessionDocument> {
+  findBySessionId(sessionId: string): Promise<IChatSessionDocument | null>;
+  findActiveByUserId(userId: string, limit?: number): Promise<IChatSessionDocument[]>;
+  findRecent(limit?: number): Promise<IChatSessionDocument[]>;
 }
 
 /**
@@ -203,10 +222,10 @@ ChatSessionSchema.methods = {
   /**
    * Update message with tool call result
    */
-  updateToolCallResult(messageId: string, toolCallId: string, result: unknown, metadata?: any): void {
-    const message = this.messages.find(m => m.id === messageId);
+  updateToolCallResult(messageId: string, toolCallId: string, result: unknown, metadata?: Record<string, unknown>): void {
+    const message = this.messages.find((m: IMessage) => m.id === messageId);
     if (message && message.toolCalls) {
-      const toolCall = message.toolCalls.find(tc => tc.id === toolCallId);
+      const toolCall = message.toolCalls.find((tc: IToolCall) => tc.id === toolCallId);
       if (toolCall) {
         toolCall.result = result;
         if (metadata) {
@@ -227,7 +246,7 @@ ChatSessionSchema.methods = {
    * Generate title from first user message
    */
   generateTitle(): string {
-    const firstUserMessage = this.messages.find(m => m.role === 'user');
+    const firstUserMessage = this.messages.find((m: IMessage) => m.role === 'user');
     if (firstUserMessage) {
       // Take first 50 characters of the message
       const title = firstUserMessage.content.slice(0, 50);
@@ -270,7 +289,7 @@ ChatSessionSchema.statics = {
 /**
  * Export the model
  */
-const ChatSessionModel: Model<IChatSessionDocument> =
-  mongoose.models.ChatSession || mongoose.model<IChatSessionDocument>('ChatSession', ChatSessionSchema);
+const ChatSessionModel: IChatSessionModel =
+  (mongoose.models.ChatSession as IChatSessionModel) || mongoose.model<IChatSessionDocument, IChatSessionModel>('ChatSession', ChatSessionSchema);
 
 export default ChatSessionModel;

@@ -55,9 +55,9 @@ async function fixFirecrawlEndpoint() {
   });
 
   if (updated) {
-    const decrypted = encryption.decrypt(updated.apiKey);
+    const decrypted = updated.apiKey ? encryption.decrypt(updated.apiKey) : '';
     console.log('🔍 Verification:');
-    console.log(`   Stored (decrypted): ${decrypted.substring(0, 30)}...`);
+    console.log(`   Stored (decrypted): ${decrypted ? decrypted.substring(0, 30) + '...' : 'N/A'}`);
     console.log(`   Custom Headers: ${JSON.stringify(updated.customHeaders)}`);
     console.log(`   Auth Method: ${updated.authMethod}`);
     console.log(`   Auth Header Name: ${updated.authHeaderName}\n`);
