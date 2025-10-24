@@ -345,7 +345,7 @@ export function formatToolResult(result: ToolExecutionResult): string {
 
   // Add payment info at the bottom (less prominent)
   if (result.metadata?.transaction) {
-    output += `\n💳 *Payment: $${result.metadata.price.toFixed(4)} • [View transaction](https://basescan.org/tx/${result.metadata.transaction})*`;
+    output += `\n💳 *Payment: $${result.metadata.price.toFixed(4)} • [View transaction](https://sepolia.basescan.org/tx/${result.metadata.transaction})*`;
   }
 
   return output.trim();

@@ -10,7 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { connectToDatabase } from '@/lib/db/connection';
 import EndpointModel from '@/lib/db/models/endpoint';
-import { createFacilitatorConfig } from '@coinbase/x402';
+import { verify, settle } from 'x402/facilitator';
+import type { PaymentPayload as X402PaymentPayload } from 'x402/types';
 import { getServerWalletClient } from '@/lib/wallet';
 import { EncryptionService } from '@/lib/services/encryption';
 import { PaymentRequirementsBuilder } from '@/lib/services/payment-requirements';
@@ -63,40 +64,17 @@ async function handleRequest(
     const builder = new PaymentRequirementsBuilder();
     const paymentRequirements = builder.build(config, request.url);
 
-    // 6. Verify payment via facilitator
+    // 6. Get wallet client for x402 SDK
+    const walletClient = await getServerWalletClient();
+
+    // 7. Verify payment using x402 SDK
     console.log(`🔍 Verifying payment for ${providerId}...`);
-    
-    // Use CDP facilitator for better reliability
-    const { createFacilitatorConfig } = await import('@coinbase/x402');
-    const facilitatorConfig = createFacilitatorConfig(
-      process.env.CDP_API_KEY_ID!,
-      process.env.CDP_API_KEY_SECRET!
-    );
-    const facilitatorUrl = facilitatorConfig.url;
-    const authHeaders = facilitatorConfig.createAuthHeaders 
-      ? await facilitatorConfig.createAuthHeaders()
-      : { verify: {}, settle: {}, supported: {}, list: {} };
-    
-    const verifyResponse = await fetch(`${facilitatorUrl}/verify`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders.verify
-      },
-      body: JSON.stringify({
-        x402Version: 1,
-        paymentPayload: paymentPayload,
-        paymentRequirements: paymentRequirements
-      })
-    });
-    
-    if (!verifyResponse.ok) {
-      const errorBody = await verifyResponse.text();
-      console.error('❌ Facilitator verify error:', errorBody);
-      throw new Error(`Facilitator verify failed: ${verifyResponse.status} - ${errorBody}`);
-    }
-    
-    const verifyResult = await verifyResponse.json();
+
+    // Parse payment payload to X402 format
+    const payment = paymentPayload as unknown as X402PaymentPayload;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- x402 facilitator type incompatible with viem wallet client type
+    const verifyResult = await verify(walletClient as any, payment, paymentRequirements);
 
     if (!verifyResult.isValid) {
       console.log(`❌ Payment verification failed: ${verifyResult.invalidReason}`);
@@ -127,44 +105,40 @@ async function handleRequest(
 
     const providerData = await providerResponse.json();
 
-    // 8. Settle payment asynchronously in background (don't block response)
-    console.log(`⛓️  Initiating async settlement...`);
-    
-    fetch(`${facilitatorUrl}/settle`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders.settle
-      },
-      body: JSON.stringify({
-        x402Version: 1,
-        paymentPayload: paymentPayload,
-        paymentRequirements: paymentRequirements
-      })
-    }).then(async (settleResponse) => {
-      if (!settleResponse.ok) {
-        const errorBody = await settleResponse.text();
-        console.error(`❌ [${providerId}] Async settlement failed:`, errorBody);
-        // In production: store failure, retry later, alert monitoring
-        return;
-      }
-      
-      const settleResult = await settleResponse.json();
-      
-      if (settleResult.success) {
-        console.log(`✅ [${providerId}] Payment settled! Tx: ${settleResult.transaction}`);
-        // In production: store transaction hash for accounting
-      } else {
-        console.error(`❌ [${providerId}] Settlement failed: ${settleResult.errorReason || 'unknown'}`);
-      }
-    }).catch((error) => {
-      console.error(`❌ [${providerId}] Settlement error:`, error);
-    });
+    // 8. Settle payment synchronously using x402 SDK
+    console.log(`⛓️  Settling payment on-chain...`);
 
-    // 9. Return provider data immediately (settlement happens in background)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- x402 facilitator type incompatible with viem wallet client type
+    const settleResult = await settle(walletClient as any, payment, paymentRequirements);
+
+    if (!settleResult.success) {
+      console.error(`❌ [${providerId}] Settlement failed: ${settleResult.errorReason || 'unknown'}`);
+      // Return 402 if settlement fails - payment was verified but not settled
+      return NextResponse.json({
+        x402Version: 1,
+        error: `Payment settlement failed: ${settleResult.errorReason || 'unknown'}`,
+        accepts: [paymentRequirements]
+      }, { status: 402 });
+    }
+
+    console.log(`✅ [${providerId}] Payment settled! Tx: ${settleResult.transaction}`);
+    console.log(`🔗 View on BaseScan: https://sepolia.basescan.org/tx/${settleResult.transaction}`);
+
+    // 9. Build X-PAYMENT-RESPONSE header with settlement details
+    const paymentResponse = {
+      success: true,
+      transaction: settleResult.transaction,
+      network: paymentRequirements.network,
+      payer: verifyResult.payer
+    };
+
+    const paymentResponseHeader = Buffer.from(JSON.stringify(paymentResponse)).toString('base64');
+
+    // 10. Return provider data with payment response header
     return NextResponse.json(providerData, {
       status: 200,
       headers: {
+        'X-PAYMENT-RESPONSE': paymentResponseHeader,
         'Access-Control-Expose-Headers': 'X-PAYMENT-RESPONSE'
       }
     });
