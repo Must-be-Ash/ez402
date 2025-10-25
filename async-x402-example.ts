@@ -1,11 +1,15 @@
 /**
- * Isolated x402 Payment Test
+ * Async x402 Payment Example
  * 
- * Tests the complete x402 payment flow:
+ * Tests the complete x402 payment flow with ASYNC settlement:
  * 1. Check payer wallet USDC balance
  * 2. Make 402 call to get payment requirements
  * 3. Create payment signature
  * 4. Retry with X-PAYMENT header
+ * 5. Service delivered immediately, settlement happens in background
+ * 
+ * Usage: npx tsx async-x402-example.ts
+ *        npx tsx async-x402-example.ts "http://localhost:3000/api/x402/test-hello"
  */
 
 import { createWalletClient, http, publicActions, createPublicClient } from 'viem';
